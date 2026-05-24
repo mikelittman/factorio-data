@@ -2,6 +2,15 @@
   "name": "factorio-data",
   "module": "index.ts",
   "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./generated/recipes": "./generated/recipes.ts",
+    "./generated/recipes.json": "./generated/recipes.json"
+  },
+  "scripts": {
+    "build:recipes": "bun run scripts/build-recipes.ts",
+    "typecheck": "tsc --noEmit"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

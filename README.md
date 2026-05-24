@@ -1,15 +1,36 @@
 # factorio-data
 
-To install dependencies:
+JavaScript tooling for turning Wube's Factorio Lua prototype data into typed
+JSON/TypeScript artifacts.
+
+The first supported artifact is recipe data. The extractor executes the Wube
+data stage files with a small Lua harness, then normalizes every recipe
+prototype into JSON and builds an index of craftable products. Recipe,
+ingredient, result, and craftable product entries include both game prototype
+icon paths where available and best-effort Factorio Wiki image/page URLs.
+
+## Build recipe data
+
+This project expects `lua` to be available on PATH.
 
 ```bash
 bun install
+bun run build:recipes
 ```
 
-To run:
+Outputs:
 
-```bash
-bun run index.ts
+- `generated/recipes.json`
+- `generated/recipes.ts`
+
+## Library usage
+
+```ts
+import { extractRecipes, writeRecipeArtifacts } from "factorio-data";
+
+const recipeData = await extractRecipes();
+const ironPlateRecipes = recipeData.recipesByProduct["item:iron-plate"].recipes;
+const ironPlateIcon = recipeData.recipesByProduct["item:iron-plate"].wikiIconUrl;
+
+await writeRecipeArtifacts({ outDir: "generated" });
 ```
-
-This project was created using `bun init` in bun v1.2.16. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
