@@ -458,6 +458,14 @@ local function url_encode_path_segment(value)
   end)
 end
 
+local function url_encode_wiki_page_title(value)
+  local encoded_parts = {}
+  for part in tostring(value):gmatch("[^/]+") do
+    encoded_parts[#encoded_parts + 1] = url_encode_path_segment(part)
+  end
+  return table.concat(encoded_parts, "/")
+end
+
 local function wiki_title_from_name(name)
   local words = {}
   for word in tostring(name):gmatch("[^-]+") do
@@ -513,10 +521,92 @@ local function wiki_title_from_composite_icons(icons)
   return nil
 end
 
+local wiki_url_overrides = {
+  ["Battery_equipment"] = {page = "Personal_battery", icon = "Personal_battery"},
+  ["Battery_MK2_equipment"] = {page = "Personal_battery_MK2", icon = "Personal_battery_MK2"},
+  ["Battery_MK3_equipment"] = {page = "Personal_battery_MK3", icon = "Personal_battery_MK3"},
+  ["Bottomless_chest"] = false,
+  ["Capture_bot"] = {page = "Capture_bot_rocket", icon = "Capture_bot_rocket"},
+  ["Capture_robot_rocket"] = {page = "Capture_bot_rocket", icon = "Capture_bot_rocket"},
+  ["Coin"] = false,
+  ["Copper_ore_melting"] = {page = "Molten_copper", icon = "Molten_copper"},
+  ["Discharge_defense_equipment"] = {page = "Discharge_defense", icon = "Discharge_defense"},
+  ["Electric_energy_interface"] = {page = false, icon = "Electric_energy_interface"},
+  ["Empty_barrel"] = {page = "Barrel", icon = "Barrel"},
+  ["Empty_module_slot"] = false,
+  ["Energy_shield_equipment"] = {page = "Energy_shield", icon = "Energy_shield"},
+  ["Energy_shield_MK2_equipment"] = {page = "Energy_shield_MK2", icon = "Energy_shield_MK2"},
+  ["Exoskeleton_equipment"] = {page = "Exoskeleton", icon = "Exoskeleton"},
+  ["Express_loader"] = false,
+  ["Fast_loader"] = false,
+  ["Fish"] = {page = "Raw_fish", icon = "Raw_fish"},
+  ["Fission_reactor_equipment"] = {page = "Portable_fission_reactor", icon = "Portable_fission_reactor"},
+  ["Fluoroketone_cold"] = {page = "Fluoroketone_(cold)", icon = "Fluoroketone_(cold)"},
+  ["Fluoroketone_cold_barrel"] = {page = "Barrel", icon = "Fluoroketone_(cold)_barrel"},
+  ["Fluoroketone_cooling"] = {page = "Fluoroketone_(cold)", icon = "Fluoroketone_(cold)"},
+  ["Fluoroketone_hot"] = {page = "Fluoroketone_(hot)", icon = "Fluoroketone_(hot)"},
+  ["Fluoroketone_hot_barrel"] = {page = "Barrel", icon = "Fluoroketone_(hot)_barrel"},
+  ["Fusion_reactor_equipment"] = {page = "Portable_fusion_reactor", icon = "Portable_fusion_reactor"},
+  ["Heat_boiler"] = {page = "Heat_exchanger", icon = "Heat_exchanger"},
+  ["Heat_interface"] = {page = "Map_editor#Editor_entities", icon = "Heat_interface"},
+  ["Infinity_cargo_wagon"] = false,
+  ["Infinity_chest"] = {page = "Map_editor#Editor_entities", icon = "Infinity_chest"},
+  ["Infinity_pipe"] = {page = "Map_editor#Editor_entities", icon = "Infinity_pipe"},
+  ["Iron_ore_melting"] = {page = "Molten_iron", icon = "Molten_iron"},
+  ["Lane_splitter"] = {page = false, icon = "Lane_splitter"},
+  ["Linked_chest_icon"] = {page = false, icon = "Linked_chest"},
+  ["Loader"] = {page = "Prototype/Loader1x2", icon = "Loader"},
+  ["Long_handed_inserter"] = {page = "Long-handed_inserter", icon = "Long-handed_inserter"},
+  ["Night_vision_equipment"] = {page = "Nightvision", icon = "Nightvision"},
+  ["One_way_valve_east"] = false,
+  ["Overflow_valve_east"] = false,
+  ["Pentapod_egg_3"] = {page = "Pentapod_egg", icon = "Pentapod_egg"},
+  ["Personal_laser_defense_equipment"] = {page = "Personal_laser_defense", icon = "Personal_laser_defense"},
+  ["Personal_roboport_equipment"] = {page = "Personal_roboport", icon = "Personal_roboport"},
+  ["Personal_roboport_MK2_equipment"] = {page = "Personal_roboport_MK2", icon = "Personal_roboport_MK2"},
+  ["Piercing_shotgun_shell"] = {page = "Piercing_shotgun_shells", icon = "Piercing_shotgun_shells"},
+  ["Proxy_container"] = false,
+  ["Rail"] = {page = "Rail", icon = "Straight_rail"},
+  ["Science"] = false,
+  ["Shotgun_shell"] = {page = "Shotgun_shells", icon = "Shotgun_shells"},
+  ["Small_lamp"] = {page = "Lamp", icon = "Lamp"},
+  ["Solar_panel_equipment"] = {page = "Portable_solar_panel", icon = "Portable_solar_panel"},
+  ["Space_platform_starter_pack"] = {page = "Space_platform_starter_pack", icon = "Space_platform_hub"},
+  ["Stone_wall"] = {page = "Wall", icon = "Wall"},
+  ["Teslagun"] = {page = "Tesla_gun", icon = "Tesla_gun"},
+  ["Top_up_valve_east"] = false,
+  ["Turbo_loader"] = false,
+  ["Unknown"] = false,
+  ["Uranium_235"] = {page = "Uranium-235", icon = "Uranium-235"},
+  ["Uranium_238"] = {page = "Uranium-238", icon = "Uranium-238"},
+}
+
+local function wiki_page_url_from_title(title)
+  local page_title, fragment = tostring(title):match("^([^#]+)#(.+)$")
+  if page_title then
+    return "https://wiki.factorio.com/" .. url_encode_wiki_page_title(page_title) .. "#" .. fragment
+  end
+  return "https://wiki.factorio.com/" .. url_encode_wiki_page_title(title)
+end
+
+local function wiki_icon_url_from_title(title)
+  return "https://wiki.factorio.com/images/" .. url_encode_path_segment(title) .. ".png"
+end
+
 local function wiki_urls_from_title(title)
   if not title or title == "" then return nil, nil end
-  local encoded = url_encode_path_segment(title)
-  return "https://wiki.factorio.com/" .. encoded, "https://wiki.factorio.com/images/" .. encoded .. ".png"
+  local override = wiki_url_overrides[title]
+  if override == false then return nil, nil end
+
+  local page_title = title
+  local icon_title = title
+  if override then
+    page_title = override.page
+    icon_title = override.icon
+  end
+  local page_url = page_title and wiki_page_url_from_title(page_title) or nil
+  local icon_url = icon_title and wiki_icon_url_from_title(icon_title) or nil
+  return page_url, icon_url
 end
 
 local function find_named_prototype(product_type, name)
