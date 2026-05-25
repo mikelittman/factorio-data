@@ -1,4 +1,4 @@
-import type { FactorioRecipeData } from "../index.ts";
+import type { FactorioRecipeData } from "../index.js";
 
 export const recipeData = {
   "craftableCount": 328,

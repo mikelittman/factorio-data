@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -78,16 +79,20 @@ export interface WriteRecipeArtifactOptions extends ExtractRecipeOptions {
   outDir?: string;
 }
 
-const defaultDataRoot = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "wube-factorio-data",
-);
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
-const harnessPath = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "scripts",
-  "factorio-recipe-harness.lua",
-);
+function resolvePackagedPath(...segments: string[]): string {
+  const candidates = [
+    path.join(moduleDir, ...segments),
+    path.join(moduleDir, "..", ...segments),
+  ];
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0]!;
+}
+
+const defaultDataRoot = resolvePackagedPath("wube-factorio-data");
+
+const harnessPath = resolvePackagedPath("scripts", "factorio-recipe-harness.lua");
 
 const defaultMods = ["base", "elevated-rails", "quality", "space-age"];
 
@@ -134,11 +139,11 @@ export async function extractRecipes(
 export async function writeRecipeArtifacts(
   options: WriteRecipeArtifactOptions = {},
 ): Promise<FactorioRecipeData> {
-  const outDir = options.outDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "generated");
+  const outDir = options.outDir ?? resolvePackagedPath("generated");
   const recipeData = await extractRecipes(options);
   const json = `${JSON.stringify(recipeData, null, 2)}\n`;
   const ts = [
-    'import type { FactorioRecipeData } from "../index.ts";',
+    'import type { FactorioRecipeData } from "../index.js";',
     "",
     `export const recipeData = ${json.trim()} as const satisfies FactorioRecipeData;`,
     "",

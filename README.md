@@ -34,3 +34,15 @@ const ironPlateIcon = recipeData.recipesByProduct["item:iron-plate"].wikiIconUrl
 
 await writeRecipeArtifacts({ outDir: "generated" });
 ```
+
+## Publishing
+
+The unscoped `factorio-data` package name has existed on npm before. Verify npm
+accepts it for your account, or publish under a scope you control, for example
+`@your-scope/factorio-data`.
+
+```bash
+bun run build
+bun run pack:dry-run
+bun run publish:public
+```

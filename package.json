@@ -1,15 +1,47 @@
 {
   "name": "factorio-data",
-  "module": "index.ts",
+  "version": "0.1.0",
+  "description": "Typed Factorio recipe data extracted from Wube Lua prototypes.",
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./index.ts",
-    "./generated/recipes": "./generated/recipes.ts",
-    "./generated/recipes.json": "./generated/recipes.json"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generated/recipes": {
+      "types": "./dist/generated/recipes.d.ts",
+      "default": "./dist/generated/recipes.js"
+    },
+    "./generated/recipes.json": "./generated/recipes.json",
+    "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "generated/recipes.json",
+    "scripts/factorio-recipe-harness.lua",
+    "wube-factorio-data",
+    "README.md"
+  ],
   "scripts": {
+    "build": "bun run build:recipes && tsc -p tsconfig.build.json",
     "build:recipes": "bun run scripts/build-recipes.ts",
+    "pack:dry-run": "npm pack --dry-run --cache .npm-cache",
+    "prepack": "bun run build",
+    "publish:public": "npm publish --access public --cache .npm-cache",
     "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "factorio",
+    "recipe",
+    "recipes",
+    "data",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/mikelittman/factorio-data.git"
   },
   "devDependencies": {
     "@types/bun": "latest"
