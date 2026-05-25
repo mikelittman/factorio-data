@@ -11,6 +11,8 @@ export interface FactorioRecipeStack {
   name: string;
   wikiPageUrl?: string;
   wikiIconUrl?: string;
+  resourcePlanets?: string[];
+  sourceResources?: string[];
   amount?: number;
   amountMin?: number;
   amountMax?: number;
@@ -58,6 +60,34 @@ export interface FactorioRecipesByProductEntry {
   recipes: string[];
   wikiPageUrl?: string;
   wikiIconUrl?: string;
+  resourcePlanets?: string[];
+  sourceResources?: string[];
+}
+
+export interface FactorioResource {
+  name: string;
+  planets: string[];
+  products: FactorioRecipeStack[];
+  wikiPageUrl?: string;
+  wikiIconUrl?: string;
+  sourceMod?: string;
+  category?: string;
+  subgroup?: string;
+  order?: string;
+  icon?: string;
+  infinite?: boolean;
+  minimum?: number;
+  normal?: number;
+  mapColor?: unknown;
+}
+
+export interface FactorioResourcesByProductEntry {
+  type: FactorioProductType;
+  name: string;
+  resources: string[];
+  planets: string[];
+  wikiPageUrl?: string;
+  wikiIconUrl?: string;
 }
 
 export interface FactorioRecipeData {
@@ -65,8 +95,11 @@ export interface FactorioRecipeData {
   mods: Record<string, string>;
   recipeCount: number;
   craftableCount: number;
+  resourceCount: number;
   recipes: Record<string, FactorioRecipe>;
   recipesByProduct: Record<string, FactorioRecipesByProductEntry>;
+  resources: Record<string, FactorioResource>;
+  resourcesByProduct: Record<string, FactorioResourcesByProductEntry>;
 }
 
 export interface ExtractRecipeOptions {

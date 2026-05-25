@@ -7,7 +7,9 @@ The first supported artifact is recipe data. The extractor executes the Wube
 data stage files with a small Lua harness, then normalizes every recipe
 prototype into JSON and builds an index of craftable products. Recipe,
 ingredient, result, and craftable product entries include both game prototype
-icon paths where available and best-effort Factorio Wiki image/page URLs.
+icon paths where available and best-effort Factorio Wiki image/page URLs. Raw
+resource prototypes are also indexed with the planets where their map generation
+settings expose them.
 
 ## Build recipe data
 
@@ -31,6 +33,8 @@ import { extractRecipes, writeRecipeArtifacts } from "factorio-data";
 const recipeData = await extractRecipes();
 const ironPlateRecipes = recipeData.recipesByProduct["item:iron-plate"].recipes;
 const ironPlateIcon = recipeData.recipesByProduct["item:iron-plate"].wikiIconUrl;
+const ironOrePlanets = recipeData.resourcesByProduct["item:iron-ore"].planets;
+const coalAvailability = recipeData.resources.coal.planets;
 
 await writeRecipeArtifacts({ outDir: "generated" });
 ```

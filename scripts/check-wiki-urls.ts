@@ -21,9 +21,24 @@ interface RecipesByProductEntry {
   wikiPageUrl?: string;
 }
 
+interface Resource {
+  name: string;
+  wikiIconUrl?: string;
+  wikiPageUrl?: string;
+  products: RecipeStack[];
+}
+
+interface ResourcesByProductEntry {
+  name: string;
+  wikiIconUrl?: string;
+  wikiPageUrl?: string;
+}
+
 interface RecipeData {
   recipes: Record<string, Recipe>;
   recipesByProduct: Record<string, RecipesByProductEntry>;
+  resources?: Record<string, Resource>;
+  resourcesByProduct?: Record<string, ResourcesByProductEntry>;
 }
 
 interface UrlReference {
@@ -157,6 +172,45 @@ function collectUrls(recipeData: RecipeData): UrlCheck[] {
       field: "wikiPageUrl",
       name: product.name,
       path: `recipesByProduct.${productKey}`,
+    });
+  }
+
+  for (const [resourceName, resource] of Object.entries(recipeData.resources ?? {})) {
+    addUrl(urls, resource.wikiIconUrl, {
+      field: "wikiIconUrl",
+      name: resource.name,
+      path: `resources.${resourceName}`,
+    });
+    addUrl(urls, resource.wikiPageUrl, {
+      field: "wikiPageUrl",
+      name: resource.name,
+      path: `resources.${resourceName}`,
+    });
+
+    resource.products.forEach((product, index) => {
+      addUrl(urls, product.wikiIconUrl, {
+        field: "wikiIconUrl",
+        name: product.name,
+        path: `resources.${resourceName}.products[${index}]`,
+      });
+      addUrl(urls, product.wikiPageUrl, {
+        field: "wikiPageUrl",
+        name: product.name,
+        path: `resources.${resourceName}.products[${index}]`,
+      });
+    });
+  }
+
+  for (const [productKey, product] of Object.entries(recipeData.resourcesByProduct ?? {})) {
+    addUrl(urls, product.wikiIconUrl, {
+      field: "wikiIconUrl",
+      name: product.name,
+      path: `resourcesByProduct.${productKey}`,
+    });
+    addUrl(urls, product.wikiPageUrl, {
+      field: "wikiPageUrl",
+      name: product.name,
+      path: `resourcesByProduct.${productKey}`,
     });
   }
 

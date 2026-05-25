@@ -26,5 +26,5 @@ const recipeData = await writeRecipeArtifacts({
 });
 
 console.log(
-  `Wrote ${recipeData.recipeCount} recipes and ${recipeData.craftableCount} craftable product indexes.`,
+  `Wrote ${recipeData.recipeCount} recipes, ${recipeData.craftableCount} craftable product indexes, and ${recipeData.resourceCount} resources.`,
 );

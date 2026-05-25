@@ -530,6 +530,7 @@ local wiki_url_overrides = {
   ["Capture_robot_rocket"] = {page = "Capture_bot_rocket", icon = "Capture_bot_rocket"},
   ["Coin"] = false,
   ["Copper_ore_melting"] = {page = "Molten_copper", icon = "Molten_copper"},
+  ["Crude_oil_resource"] = {page = "Crude_oil", icon = "Crude_oil"},
   ["Discharge_defense_equipment"] = {page = "Discharge_defense", icon = "Discharge_defense"},
   ["Electric_energy_interface"] = {page = false, icon = "Electric_energy_interface"},
   ["Empty_barrel"] = {page = "Barrel", icon = "Barrel"},
@@ -546,6 +547,7 @@ local wiki_url_overrides = {
   ["Fluoroketone_cooling"] = {page = "Fluoroketone_(cold)", icon = "Fluoroketone_(cold)"},
   ["Fluoroketone_hot"] = {page = "Fluoroketone_(hot)", icon = "Fluoroketone_(hot)"},
   ["Fluoroketone_hot_barrel"] = {page = "Barrel", icon = "Fluoroketone_(hot)_barrel"},
+  ["Fluorine_vent"] = {page = "Fluorine", icon = "Fluorine"},
   ["Fusion_reactor_equipment"] = {page = "Portable_fusion_reactor", icon = "Portable_fusion_reactor"},
   ["Heat_boiler"] = {page = "Heat_exchanger", icon = "Heat_exchanger"},
   ["Heat_interface"] = {page = "Map_editor#Editor_entities", icon = "Heat_interface"},
@@ -573,6 +575,7 @@ local wiki_url_overrides = {
   ["Solar_panel_equipment"] = {page = "Portable_solar_panel", icon = "Portable_solar_panel"},
   ["Space_platform_starter_pack"] = {page = "Space_platform_starter_pack", icon = "Space_platform_hub"},
   ["Stone_wall"] = {page = "Wall", icon = "Wall"},
+  ["Sulfuric_acid_geyser"] = {page = "Sulfuric_acid", icon = "Sulfuric_acid"},
   ["Teslagun"] = {page = "Tesla_gun", icon = "Tesla_gun"},
   ["Top_up_valve_east"] = false,
   ["Turbo_loader"] = false,
@@ -636,6 +639,31 @@ local function add_product_wiki_urls(target, product_type, name)
   add_wiki_urls(target, title or wiki_title_from_name(name))
 end
 
+local resource_products_by_key = {}
+
+local function copy_array(value)
+  local output = {}
+  if type(value) ~= "table" then return output end
+
+  for _, item in ipairs(value) do
+    output[#output + 1] = item
+  end
+
+  return output
+end
+
+local function add_resource_availability(target, product_type, name)
+  local resource_product = resource_products_by_key[product_type .. ":" .. name]
+  if not resource_product then return end
+
+  if #resource_product.planets > 0 then
+    target.resourcePlanets = copy_array(resource_product.planets)
+  end
+  if #resource_product.resources > 0 then
+    target.sourceResources = copy_array(resource_product.resources)
+  end
+end
+
 local function normalize_stack(stack, default_type)
   if type(stack) ~= "table" then return nil end
 
@@ -648,6 +676,7 @@ local function normalize_stack(stack, default_type)
   }
 
   add_product_wiki_urls(normalized, normalized.type, normalized.name)
+  add_resource_availability(normalized, normalized.type, normalized.name)
 
   if stack.amount ~= nil then normalized.amount = stack.amount end
   if stack[2] ~= nil and normalized.amount == nil then normalized.amount = stack[2] end
@@ -673,7 +702,136 @@ local function normalize_stack(stack, default_type)
   return normalized
 end
 
-local function normalize_stack_list(stacks, default_type)
+local function add_unique(array, seen, value)
+  if value == nil or seen[value] then return end
+  seen[value] = true
+  array[#array + 1] = value
+end
+
+local function collect_resource_planets()
+  local planets_by_resource = {}
+
+  for _, planet_name in ipairs(sorted_keys(data.raw.planet or {})) do
+    local planet = data.raw.planet[planet_name]
+    local map_gen_settings = planet and planet.map_gen_settings
+    local autoplace_settings = map_gen_settings and map_gen_settings.autoplace_settings
+    local entity_autoplace = autoplace_settings and autoplace_settings["entity"]
+    local entity_settings = entity_autoplace and entity_autoplace.settings
+
+    for _, entity_name in ipairs(sorted_keys(entity_settings or {})) do
+      if data.raw.resource and data.raw.resource[entity_name] then
+        local planets = planets_by_resource[entity_name]
+        if not planets then
+          planets = {}
+          planets_by_resource[entity_name] = planets
+        end
+        planets[#planets + 1] = planet_name
+      end
+    end
+  end
+
+  return planets_by_resource
+end
+
+local normalize_stack_list
+
+local function normalize_resource_products(resource)
+  local minable = resource.minable
+  if type(minable) ~= "table" then return {} end
+
+  if minable.results then
+    return normalize_stack_list(minable.results, "item")
+  end
+
+  if minable.result then
+    local product = {
+      type = "item",
+      name = minable.result,
+      amount = minable.count or minable.amount or 1,
+    }
+    add_product_wiki_urls(product, product.type, product.name)
+    return {product}
+  end
+
+  return {}
+end
+
+local function build_resources_by_product(resources)
+  local by_product = {}
+  local seen_by_product = {}
+
+  for _, resource_name in ipairs(sorted_keys(resources)) do
+    local resource = resources[resource_name]
+
+    for _, product in ipairs(resource.products) do
+      local key = product.type .. ":" .. product.name
+      local product_entry = by_product[key]
+      if not product_entry then
+        product_entry = {
+          type = product.type,
+          name = product.name,
+          resources = {},
+          planets = {},
+        }
+        add_product_wiki_urls(product_entry, product.type, product.name)
+        by_product[key] = product_entry
+        seen_by_product[key] = {
+          resources = {},
+          planets = {},
+        }
+      end
+
+      local seen = seen_by_product[key]
+      add_unique(product_entry.resources, seen.resources, resource.name)
+      for _, planet_name in ipairs(resource.planets) do
+        add_unique(product_entry.planets, seen.planets, planet_name)
+      end
+    end
+  end
+
+  for _, key in ipairs(sorted_keys(by_product)) do
+    table.sort(by_product[key].resources)
+    table.sort(by_product[key].planets)
+  end
+
+  return by_product
+end
+
+local function build_resources()
+  local planets_by_resource = collect_resource_planets()
+  local resources = {}
+
+  for _, name in ipairs(sorted_keys(data.raw.resource or {})) do
+    local resource = data.raw.resource[name]
+    local normalized = {
+      name = resource.name,
+      planets = planets_by_resource[name] or {},
+      products = normalize_resource_products(resource),
+    }
+
+    local source_mod = prototype_sources["resource|" .. resource.name]
+    if source_mod then normalized.sourceMod = source_mod end
+
+    add_wiki_urls(normalized, wiki_title_from_icon_path(resource.icon) or wiki_title_from_name(resource.name))
+
+    camel_fields(resource, normalized, {
+      {"category", "category"},
+      {"subgroup", "subgroup"},
+      {"order", "order"},
+      {"icon", "icon"},
+      {"infinite", "infinite"},
+      {"minimum", "minimum"},
+      {"normal", "normal"},
+      {"map_color", "mapColor"},
+    })
+
+    resources[name] = normalized
+  end
+
+  return resources, build_resources_by_product(resources)
+end
+
+function normalize_stack_list(stacks, default_type)
   local normalized = {}
   if type(stacks) ~= "table" then return normalized end
 
@@ -748,6 +906,9 @@ local function normalize_recipe(recipe)
   return normalized
 end
 
+local resources, resources_by_product = build_resources()
+resource_products_by_key = resources_by_product
+
 local recipes = {}
 local recipes_by_product = {}
 
@@ -764,6 +925,7 @@ for _, name in ipairs(sorted_keys(data.raw.recipe or {})) do
         recipes = {},
       }
       add_product_wiki_urls(recipes_by_product[key], product.type, product.name)
+      add_resource_availability(recipes_by_product[key], product.type, product.name)
     end
     recipes_by_product[key].recipes[#recipes_by_product[key].recipes + 1] = name
   end
@@ -831,8 +993,11 @@ local output = {
   mods = mods,
   recipeCount = table_size(recipes),
   craftableCount = table_size(recipes_by_product),
+  resourceCount = table_size(resources),
   recipes = recipes,
   recipesByProduct = recipes_by_product,
+  resources = resources,
+  resourcesByProduct = resources_by_product,
 }
 
 io.write(encode_json(output))
