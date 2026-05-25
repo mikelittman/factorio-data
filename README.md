@@ -35,6 +35,15 @@ const ironPlateIcon = recipeData.recipesByProduct["item:iron-plate"].wikiIconUrl
 await writeRecipeArtifacts({ outDir: "generated" });
 ```
 
+## Validate Wiki URLs
+
+```bash
+bun run check:wiki-urls
+```
+
+The checker writes invalid URL details, including every recipe/product reference
+path, to `generated/invalid-wiki-urls.json`.
+
 ## Publishing
 
 The unscoped `factorio-data` package name has existed on npm before. Verify npm

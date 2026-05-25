@@ -27,6 +27,7 @@
   "scripts": {
     "build": "bun run build:recipes && tsc -p tsconfig.build.json",
     "build:recipes": "bun run scripts/build-recipes.ts",
+    "check:wiki-urls": "bun run scripts/check-wiki-urls.ts",
     "pack:dry-run": "npm pack --dry-run --cache .npm-cache",
     "prepack": "bun run build",
     "publish:public": "npm publish --access public --cache .npm-cache",
